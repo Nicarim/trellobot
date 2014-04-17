@@ -55,7 +55,10 @@ namespace TrelloBot
                     catch(IOException e)
                     {
                         ConsoleNotifications.writeWarning("Connection lost / error while reading - reconnecting!\n" + e.Message);
-                        while (!connectToServer(true));
+                        lock ((object)connected)
+                        {
+                            while (!connectToServer(true));
+                        }
                         continue;
                     }
                     string prefix;
@@ -120,7 +123,11 @@ namespace TrelloBot
                         ConsoleNotifications.writeWarning(e.Message);
                         ConsoleNotifications.writeWarning(e.StackTrace);
                         ConsoleNotifications.writeWarning("Trying to reconnect");
-                        connectToServer(true);
+                        lock ((object) connected)
+                        {
+                            connectToServer(true);
+                        }
+
                     }
                 }
                 if (!connectedToChannel && actualConnection)
