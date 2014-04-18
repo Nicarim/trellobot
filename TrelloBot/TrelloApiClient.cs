@@ -24,6 +24,13 @@ namespace TrelloBot
         public volatile CountdownEvent processingStarted;
         public volatile CountdownEvent processingFinished;
         public Stopwatch lantencyWatcher;
+
+        //localizations
+        private string l_createCard;
+        private string l_addMemberToCard;
+        private string l_createList;
+        private string l_commentCard;
+        //--
         public TrelloApiClient(ConfigManager _config, IrcClient _conn)
         {
             ircConn = _conn;
@@ -40,6 +47,12 @@ namespace TrelloBot
             ApiKey = config.readString("trelloApiKey", "null");
             Token = config.readString("trelloToken","null");
             channel = config.readString("ircChannel", "#trello-notifications");
+
+            l_addMemberToCard = Program.localization.readString("addMemberToCard", @"[{0}] [https://trello.com/c/{1} {2} added {3} to ""{4}"" card!]");
+            l_commentCard = Program.localization.readString("commentCard", @"[{0}] [https://trello.com/c/{1} {2} commented on {3} card!]");
+            l_createCard = Program.localization.readString("createCard", @"[{0}] [https://trello.com/c/{1} {2} created ""{3}"" card in {4} list!]");
+            l_createList = Program.localization.readString("createList", @"[{0}] [https://trello.com/b/{1} {2} created ""{3}"" list]");
+
             lantencyWatcher = new Stopwatch();
             while(true)
             {
@@ -103,18 +116,17 @@ namespace TrelloBot
                             //dataToWrite.Add("PRIVMSG " + channel + " :" + "[" + result.data.board.name + "] [https://trello.com/c/" + result.data.card.shortLink + " " + result.memberCreator.fullName + " added " + result.member.fullName + " to " + '"' + result.data.card.name + '"' + " card!]");
                             case "createCard":
                                 // channel, result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.data.card.name, result.data.list.name
-                                ircConn.messagesStack.PrivMsg(channel, String.Format(@"[{0}] [https://trello.com/c/{1} {2} created ""{3}"" card in {4} list!]", result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.data.card.name, result.data.list.name));
+                                ircConn.messagesStack.PrivMsg(channel, String.Format(l_createCard, result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.data.card.name, result.data.list.name));
                                 break;
                             case "addMemberToCard":
                                 if ((string) result.memberCreator.fullName != (string) result.member.fullName)
-                                    ircConn.messagesStack.PrivMsg(channel, String.Format(@"[{0}] [https://trello.com/c/{1} {2} added {3} to ""{4}"" card!]", result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.member.fullName, result.data.card.name));
+                                    ircConn.messagesStack.PrivMsg(channel, String.Format(l_addMemberToCard, result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.member.fullName, result.data.card.name));
                                 break;
                             case "createList":
-                                ircConn.messagesStack.PrivMsg(channel, String.Format(@"[{0}] [https://trello.com/b/{1} {2} created ""{3}"" list]", result.data.board.name, result.data.board.shortLink, result.memberCreator.fullName, result.data.list.name));
+                                ircConn.messagesStack.PrivMsg(channel, String.Format(l_createList, result.data.board.name, result.data.board.shortLink, result.memberCreator.fullName, result.data.list.name));
                                 break;
                             case "commentCard":
-                                ircConn.messagesStack.PrivMsg(channel, String.Format(@"[{0}] [https://trello.com/c/{1} {2} commented on {3} card!", result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.data.card.name));
-                                
+                                ircConn.messagesStack.PrivMsg(channel, String.Format(l_commentCard, result.data.board.name, result.data.card.shortLink, result.memberCreator.fullName, result.data.card.name));
                                 break;
                         }
                         firstCheck.Add((string) result.id); //add id of event, so it won't be doubled in case api returns in second cycle same event

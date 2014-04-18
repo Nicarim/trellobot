@@ -14,6 +14,7 @@ namespace TrelloBot
     class Program
     {
         public static ConfigManager config;
+        public static ConfigManager localization;
         public static Logger logger;
         public static Logger rawIrc;
         public static Thread ircThread;
@@ -25,6 +26,8 @@ namespace TrelloBot
         {
             config = new ConfigManager();
             config.Initialize();
+            localization = new ConfigManager(@"strings.ini");
+            localization.Initialize();
             logger = new Logger(config.execLocation);
             logger.Initalize();
             rawIrc = new Logger(config.execLocation, "rawirc.log");
