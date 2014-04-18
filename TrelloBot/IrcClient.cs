@@ -126,7 +126,7 @@ namespace TrelloBot
                 }
                 if (!connectedToChannel && actualConnection)
                 {
-                    if (channelPass != null)
+                    if (channelPass != "null")
                         messagesStack.Join(channel, channelPass);
                     else
                         messagesStack.Join(channel);
@@ -191,7 +191,7 @@ namespace TrelloBot
             try
             {
                 client.Connect(serverAddress, port);
-                ConsoleNotifications.writeNotify("Connected to Bancho!");
+                ConsoleNotifications.writeNotify("Connected to " + serverAddress);
 
             }
             catch (Exception e)
