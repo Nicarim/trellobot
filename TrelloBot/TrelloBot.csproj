@@ -55,6 +55,7 @@
     <Compile Include="ConfigManager.cs" />
     <Compile Include="ConsoleNotifications.cs" />
     <Compile Include="IrcClient.cs" />
+    <Compile Include="IrcCommandsSender.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

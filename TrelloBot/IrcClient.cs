@@ -17,23 +17,26 @@ namespace TrelloBot
         private static NetworkStream ns;
         private static StreamReader sr;
         private static StreamWriter sw;
-        private static int ticks;
         public static ConfigManager config;
-        public static volatile List<string> dataToWrite;
+        public volatile IrcCommandsSender messagesStack;
         private Thread ircReaderThread;
         private Thread ircWriterThread;
-        public IrcClient(ConfigManager _config)
+        private string channel;
+        private string channelPass;
+        public IrcClient(ConfigManager _config, IrcCommandsSender _messagesStack)
         {
             config = _config;
+            messagesStack = _messagesStack;
         }
 
         public void startClient()
         {
-            dataToWrite = new List<string>();
             ircReaderThread = new Thread(new ThreadStart(this.IrcReader));
             ircReaderThread.Start();
             ircWriterThread = new Thread(new ThreadStart(this.IrcWriter));
             ircWriterThread.Start();
+            channel = config.readString("ircChannel", "#trello-notifications");
+            channelPass = config.readString("ircChannelPassword", "null");
             while (!connectToServer())
             {
                 ConsoleNotifications.writeNotify("Could not initate connection, retrying in 5 seconds...");
@@ -72,20 +75,16 @@ namespace TrelloBot
                     {
                         case "PING":
                             ConsoleNotifications.writeDebug("[PING] Recieved ping from server, pong!");
-                            sw.WriteLine("PONG " + parameters[0]);
-                            sw.Flush();
-                            ConsoleNotifications.writeDebug("Ticks since last ping:" + ticks);
-                            ticks = 0;
+                            messagesStack.Pong(parameters[0]);
                             break;
                         case "PRIVMSG":
                             ConsoleNotifications.writeDebug(sender + ": " + messageString);
                             if (messageString == ".ping")
-                                dataToWrite.Add(String.Format("PRIVMSG {0} :A MUTHAFUCKA POOOOOOONG IN YA FAAAAAAACE", sender));
+                                messagesStack.PrivMsg(sender, "A MUTHAFUCKA POOOOOOONG IN YA FAAAAAAACE");
                             if (messageString.Contains("VERSION"))
                             {
                                 ConsoleNotifications.writeDebug("Replaying to ctcp version request");
-                                sw.WriteLine("PRIVMSG {0} :CLIENT TrelloBot - notify about events on trello board and more!", sender);
-                                sw.Flush();
+                                messagesStack.PrivMsg(sender, "CLIENT TrelloBot - notify about events on trello board and more!");
                             }
                             break;
                         case "376":
@@ -104,18 +103,12 @@ namespace TrelloBot
                 {
                     try
                     {
-                        if (dataToWrite.Count != 0)
+                        if (messagesStack.commandsToWrite.Count != 0)
                         {
-                            int iterator = 0;
-                            foreach (string data in dataToWrite)
-                            {
-                                if (iterator <= config.readInt("ircMaxEventsCountPerLoop", 10))
-                                    sw.WriteLine(data);
-                                iterator++;
-                            }
-                            dataToWrite.Clear();
+                            foreach (string data in messagesStack.commandsToWrite)
+                                sw.WriteLine(data);
+                            messagesStack.commandsToWrite.Clear();
                             sw.Flush();
-                            ticks++;
                         }   
                     }
                     catch (Exception e)
@@ -133,12 +126,12 @@ namespace TrelloBot
                 }
                 if (!connectedToChannel && actualConnection)
                 {
-                    string channel = config.readString("ircChannel", "#trello-notifications");
-                    sw.WriteLine("JOIN " + channel);
-                    sw.Flush();
+                    if (channelPass != null)
+                        messagesStack.Join(channel, channelPass);
+                    else
+                        messagesStack.Join(channel);
                     connectedToChannel = true;
                 }
-                ConsoleNotifications.writeDebug("Putting to sleep! zzzz");
                 Thread.Sleep(config.readInt("ircWritingThreadSleepTime", 5000));
             }
         }
@@ -149,38 +142,25 @@ namespace TrelloBot
             prefix = command = String.Empty;
             parameters = new string[] { };
 
-            // Grab the prefix if it is present. If a message begins
-            // with a colon, the characters following the colon until
-            // the first space are the prefix.
             if (message.StartsWith(":"))
             {
                 prefixEnd = message.IndexOf(" ");
                 prefix = message.Substring(1, prefixEnd - 1);
             }
 
-            // Grab the trailing if it is present. If a message contains
-            // a space immediately following a colon, all characters after
-            // the colon are the trailing part.
             trailingStart = message.IndexOf(" :");
             if (trailingStart >= 0)
                 trailing = message.Substring(trailingStart + 2);
             else
                 trailingStart = message.Length;
 
-            // Use the prefix end position and trailing part start
-            // position to extract the command and parameters.
             var commandAndParameters = message.Substring(prefixEnd + 1, trailingStart - prefixEnd - 1).Split(' ');
 
-            // The command will always be the first element of the array.
             command = commandAndParameters.First();
 
-            // The rest of the elements are the parameters, if they exist.
-            // Skip the first element because that is the command.
             if (commandAndParameters.Length > 1)
                 parameters = commandAndParameters.Skip(1).ToArray();
 
-            // If the trailing part is valid add the trailing part to the
-            // end of the parameters.
             if (!String.IsNullOrEmpty(trailing))
                 parameters = parameters.Concat(new string[] { trailing }).ToArray();
         }
@@ -235,7 +215,6 @@ namespace TrelloBot
             ConsoleNotifications.writeWarning("Auhtenticated!");
             Thread.Sleep(config.readInt("clientCooldown", 5000));
             connected = true;
-
             return true;
         }
     }

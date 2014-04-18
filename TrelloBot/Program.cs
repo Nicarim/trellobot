@@ -16,6 +16,11 @@ namespace TrelloBot
         public static ConfigManager config;
         public static Logger logger;
         public static Logger rawIrc;
+        public static Thread ircThread;
+        public static Thread trelloThread;
+        public static TrelloApiClient trelloClient;
+        public static IrcClient ircConnection;
+        public static IrcCommandsSender commandsStack;
         static void Main(string[] args)
         {
             config = new ConfigManager();
@@ -25,17 +30,18 @@ namespace TrelloBot
             rawIrc = new Logger(config.execLocation, "rawirc.log");
             rawIrc.Initalize();
             ConsoleNotifications.writeNotify("Starting TrelloBot");
+            commandsStack = new IrcCommandsSender();
             bool configEdited = config.readBool("configEdited", false);
             if (!configEdited)
             {
                 ConsoleNotifications.writeWarning(@"Config is probably new!!! set ""configEdited"" to ""true"" after you are done modifying config!!!");
                 Thread.Sleep(1000);
             }
-            IrcClient ircConnection = new IrcClient(config);
-            Thread ircThread = new Thread(new ThreadStart(() => ircConnection.startClient()));
+            ircConnection = new IrcClient(config, commandsStack);
+            ircThread = new Thread(new ThreadStart(() => ircConnection.startClient()));
             ConsoleNotifications.writeNotify("Irc Client started!");
-            TrelloApiClient trelloClient = new TrelloApiClient(config, ircConnection);
-            Thread trelloThread = new Thread(new ThreadStart(() => trelloClient.start()));
+            trelloClient = new TrelloApiClient(config, ircConnection);
+            trelloThread = new Thread(new ThreadStart(() => trelloClient.start()));
             ircThread.Start();
             Thread.Sleep(50);
             trelloThread.Start();
