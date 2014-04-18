@@ -78,8 +78,9 @@ namespace TrelloBot
                             ticks = 0;
                             break;
                         case "PRIVMSG":
-                            lock (ConsoleNotifications.Locker)
-                                ConsoleNotifications.writeDebug(sender + ": " + messageString);
+                            ConsoleNotifications.writeDebug(sender + ": " + messageString);
+                            if (messageString == ".ping")
+                                dataToWrite.Add(String.Format("PRIVMSG {0} :A MUTHAFUCKA POOOOOOONG IN YA FAAAAAAACE", sender));
                             if (messageString.Contains("VERSION"))
                             {
                                 ConsoleNotifications.writeDebug("Replaying to ctcp version request");
