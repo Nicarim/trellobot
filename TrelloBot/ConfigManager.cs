@@ -74,9 +74,12 @@ namespace TrelloBot
         private void saveFile()
         {
             writer.BaseStream.Position = 0;
-            foreach (string value in defaultComments)
+            if (configFilename == "config.ini")
             {
-                writer.WriteLine(value);
+                foreach (string value in defaultComments)
+                {
+                    writer.WriteLine(value);
+                }
             }
             foreach (KeyValuePair<string, string> keyvalue in configKeysValues)
             {
