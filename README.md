@@ -6,7 +6,7 @@ Trello IRC bot!
 Download
 ======
 
-https://github.com/marcin19962/trellobot/tree/master/TrelloBot/bin/Release
+https://github.com/marcin19962/trellobot/releases
 
 Usage
 ======
